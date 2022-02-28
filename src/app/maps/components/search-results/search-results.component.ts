@@ -26,11 +26,23 @@ export class SearchResultsComponent {
 
   flyTo( place: Feature) {
     this.selectedId = place.id;
-    
+
     const [ lng, lat ] = place.geometry.coordinates;
     this.mapService.flyTo([ lng, lat ]);
   }
 
-  
+  getDirections( place: Feature) {
+
+    this.placesService.deletePlaces();
+
+    if(!this.placesService.userLocation) throw Error('No hay ubicación'); 
+
+    const start = this.placesService.userLocation;
+    const end = place.center as [number, number];
+
+    this.mapService.getRouteBetweenPoints(start, end);
+  }
+
+ 
 
 }
