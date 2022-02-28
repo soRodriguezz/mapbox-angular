@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
 import { PlacesApiClient } from '../api';
 import { Feature, PlacesResponse } from '../interfaces/places';
+import { MapService } from './map.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PlacesService {
-
   public userLocation: [number, number] | undefined;
   public isLoadingPlaces: boolean = false;
   public places: Feature[] = [];
@@ -16,15 +16,16 @@ export class PlacesService {
   }
 
   constructor(
-    private placesApi: PlacesApiClient
-  ) { 
+    private placesApi: PlacesApiClient,
+    private mapService: MapService
+  ) {
     this.getUserLocation();
   }
 
   public async getUserLocation(): Promise<[number, number]> {
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        ({coords}) => {
+        ({ coords }) => {
           this.userLocation = [coords.longitude, coords.latitude];
           resolve(this.userLocation);
         },
@@ -38,22 +39,27 @@ export class PlacesService {
   }
 
   getPlacesByQuery(query: string = '') {
+    if (query.length === 0) {
+      this.isLoadingPlaces = false;
+      this.places = [];
+      return;
+    }
 
-    if(!this.userLocation) throw Error('No hay ubicación');
+    if (!this.userLocation) throw Error('No hay ubicación');
 
     this.isLoadingPlaces = true;
 
-    this.placesApi.get<PlacesResponse>(`/${query}.json`, {
-      params: {
-        proximity: this.userLocation.join(','),
-      }
-    })
-    .subscribe(resp => {
-      console.log(resp.features);
-      this.isLoadingPlaces = false;
-      this.places = resp.features;
-    }
+    this.placesApi
+      .get<PlacesResponse>(`/${query}.json`, {
+        params: {
+          proximity: this.userLocation.join(','),
+        },
+      })
+      .subscribe((resp) => {
+        this.isLoadingPlaces = false;
+        this.places = resp.features;
 
-    );
+        this.mapService.createMarkersFormPlaces(this.places);
+      });
   }
 }
